@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Async routine wait_n built on wait_random."""
+"""This module measures runtime for async routines."""
 import asyncio
 import time
 from typing import Union
