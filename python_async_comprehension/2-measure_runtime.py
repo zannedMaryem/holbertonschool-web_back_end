@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """Coroutine measure_runtime that benchmarks async_comprehension."""
-
 import asyncio
 import time
-async_comprehension = __import('1-async_comprehension').async_comprehension
+async_comprehension = __import__('1-async_comprehension').async_comprehension
+
 
 async def measure_runtime() -> float:
     """
