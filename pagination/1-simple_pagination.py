@@ -4,6 +4,7 @@ import csv
 import math
 from typing import List
 
+
 def index_range(page, page_size):
     """ function returns a tuple containing a start index
         and an end index corresponding to the range of indexes
@@ -33,6 +34,7 @@ class Server:
         return self.__dataset
 
     def get_page(self, page: int = 1, page_size: int = 10) -> List[List]:
+        """gets the page"""
         assert type(page) is int and page > 0
         assert type(page_size) is int and page_size > 0
 
