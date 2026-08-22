@@ -40,6 +40,7 @@ class Server:
         return self.__indexed_dataset
 
     def get_hyper_index(self, index: int = None, page_size: int = 10) -> Dict:
+        """ Retunrs Deletion-resilient hypermedia pagination"""
         assert type(page_size) is int and page_size > 0
 
         if index is None:
