@@ -1,2 +1,2 @@
-// Select a database, It is created after the first write operation.
-my_db
+// selects a database or creates it if does not exist
+use my_db
