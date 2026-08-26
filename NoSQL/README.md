@@ -40,15 +40,26 @@ INSERT INTO users (name, email) VALUES ('Ada', 'ada@example.com');
 SELECT name, email FROM users WHERE name = 'Ada';
 ```
 
-MongoDB stores the same user as a document in a collection:
+MongoDB stores the same user as a document in a collection. In Python, use
+the `pymongo` driver:
 
-```javascript
-// A collection is similar to a table, but documents need not share exactly
-// the same fields.
-db.users.insertOne({ name: "Ada", email: "ada@example.com" });
+```python
+from pymongo import MongoClient
 
-// Find documents whose name is Ada and return only selected fields.
-db.users.find({ name: "Ada" }, { _id: 0, name: 1, email: 1 });
+client = MongoClient("mongodb://localhost:27017/")
+db = client.school
+
+# A collection is similar to a table, but documents need not share exactly
+# the same fields.
+db.users.insert_one({"name": "Ada", "email": "ada@example.com"})
+
+# Find documents whose name is Ada and return only selected fields.
+users = db.users.find(
+    {"name": "Ada"},
+    {"_id": 0, "name": 1, "email": 1}
+)
+for user in users:
+    print(user)
 ```
 
 ## What is ACID?
@@ -63,25 +74,25 @@ ACID describes properties that make database transactions reliable:
 MongoDB supports atomic operations on a single document. It also supports
 multi-document transactions when several documents must change together.
 
-```javascript
-// Use a session when a group of operations must commit or roll back together.
-const session = db.getMongo().startSession();
-const store = session.getDatabase("school");
+```python
+from pymongo import MongoClient
 
-try {
- session.startTransaction();
- store.students.updateOne(
-  { name: "Ada" },
-  { $set: { enrolled: true } }
- );
- store.audit.insertOne({ action: "enroll", student: "Ada" });
- session.commitTransaction(); // Make both operations permanent.
-} catch (error) {
- session.abortTransaction(); // Undo both operations if one fails.
- throw error;
-} finally {
- session.endSession();
-}
+client = MongoClient("mongodb://localhost:27017/")
+db = client.school
+
+# Use a session when operations must commit or roll back together.
+with client.start_session() as session:
+    with session.start_transaction():
+        db.students.update_one(
+            {"name": "Ada"},
+            {"$set": {"enrolled": True}},
+            session=session
+        )
+        db.audit.insert_one(
+            {"action": "enroll", "student": "Ada"},
+            session=session
+        )
+        # Exiting the block commits both operations; an exception aborts them.
 ```
 
 Transactions require a MongoDB deployment that supports them, such as a
@@ -96,17 +107,21 @@ JSON that also supports types such as dates and object identifiers.
 Documents are grouped into collections, and collections are grouped into
 databases. Related data can be embedded inside one document:
 
-```javascript
-// The address is embedded because it belongs directly to this user.
-db.users.insertOne({
- name: "Ada Lovelace",
- email: "ada@example.com",
- address: {
-  city: "London",
-  country: "United Kingdom"
- },
- skills: ["mathematics", "programming"]
-});
+```python
+from pymongo import MongoClient
+
+db = MongoClient("mongodb://localhost:27017/").school
+
+# The address is embedded because it belongs directly to this user.
+db.users.insert_one({
+    "name": "Ada Lovelace",
+    "email": "ada@example.com",
+    "address": {
+        "city": "London",
+        "country": "United Kingdom"
+    },
+    "skills": ["mathematics", "programming"]
+})
 ```
 
 Each MongoDB document normally has a unique `_id` field. MongoDB creates one
@@ -136,62 +151,69 @@ transactions are the most important requirements.
 
 ### Start the shell and select a database
 
-Run `mongosh` to open the MongoDB shell. The following commands are shell
-commands, not JavaScript files:
+Install PyMongo and connect to MongoDB from Python:
 
-```javascript
-// List databases available to the current MongoDB server.
-show dbs
-
-// Select a database. MongoDB creates it when the first document is inserted.
-use school
-
-// Show the current database.
-db
-
-// List collections in the current database.
-show collections
+```bash
+pip install pymongo
 ```
 
-The exercise file `0-list_databases` contains the `show dbs` command.
+```python
+from pymongo import MongoClient
+
+client = MongoClient("mongodb://localhost:27017/")
+
+# List databases available to the current MongoDB server.
+print(client.list_database_names())
+
+# Select a database. MongoDB creates it when the first document is inserted.
+db = client.school
+
+# Show the selected database and its collections.
+print(db.name)
+print(db.list_collection_names())
+```
+
+The exercise file `0-list_databases` contains the equivalent `show dbs`
+MongoDB shell command.
 
 ### Insert documents
 
-```javascript
-// Insert one document into the students collection.
-db.students.insertOne({
- name: "Ada",
- age: 36,
- course: "Computer Science"
-});
+```python
+# Insert one document into the students collection.
+db.students.insert_one({
+    "name": "Ada",
+    "age": 36,
+    "course": "Computer Science"
+})
 
-// Insert several documents at once.
-db.students.insertMany([
- { name: "Grace", age: 28, course: "Mathematics" },
- { name: "Linus", age: 34, course: "Systems" }
-]);
+# Insert several documents at once.
+db.students.insert_many([
+    {"name": "Grace", "age": 28, "course": "Mathematics"},
+    {"name": "Linus", "age": 34, "course": "Systems"}
+])
 ```
 
 ### Query documents
 
-```javascript
-// Return every document in the collection.
-db.students.find();
+```python
+# Return every document in the collection.
+for student in db.students.find():
+    print(student)
 
-// Find students older than 30.
-db.students.find({ age: { $gt: 30 } });
+# Find students older than 30.
+older_students = db.students.find({"age": {"$gt": 30}})
 
-// Find one matching student.
-db.students.findOne({ name: "Ada" });
+# Find one matching student.
+student = db.students.find_one({"name": "Ada"})
 
-// Select fields and exclude the generated _id field.
-db.students.find(
- { course: "Mathematics" },
- { _id: 0, name: 1, age: 1 }
-);
+# Select fields and exclude the generated _id field.
+math_students = db.students.find(
+    {"course": "Mathematics"},
+    {"_id": 0, "name": 1, "age": 1}
+)
 
-// Sort by age and return only the first two results.
-db.students.find().sort({ age: 1 }).limit(2);
+# Sort by age and return only the first two results.
+youngest_students = db.students.find().sort("age", 1).limit(2)
 ```
 
 Useful query operators include `$gt` (greater than), `$gte` (greater than or
@@ -199,49 +221,49 @@ equal), `$lt`, `$lte`, `$in`, `$and`, and `$or`.
 
 ### Update documents
 
-```javascript
-// Change one field on the first matching document.
-db.students.updateOne(
- { name: "Ada" },
- { $set: { enrolled: true } }
-);
+```python
+# Change one field on the first matching document.
+db.students.update_one(
+    {"name": "Ada"},
+    {"$set": {"enrolled": True}}
+)
 
-// Increment a numeric field for every matching document.
-db.students.updateMany(
- { course: "Systems" },
- { $inc: { age: 1 } }
-);
+# Increment a numeric field for every matching document.
+db.students.update_many(
+    {"course": "Systems"},
+    {"$inc": {"age": 1}}
+)
 
-// Add a skill to an array only if it is not already present.
-db.students.updateOne(
- { name: "Grace" },
- { $addToSet: { skills: "algebra" } }
-);
+# Add a skill to an array only if it is not already present.
+db.students.update_one(
+    {"name": "Grace"},
+    {"$addToSet": {"skills": "algebra"}}
+)
 ```
 
 ### Delete documents
 
-```javascript
-// Delete one matching document.
-db.students.deleteOne({ name: "Linus" });
+```python
+# Delete one matching document.
+db.students.delete_one({"name": "Linus"})
 
-// Delete all students in a course.
-db.students.deleteMany({ course: "Systems" });
+# Delete all students in a course.
+db.students.delete_many({"course": "Systems"})
 ```
 
 Be precise with delete filters. An empty filter, such as
-`deleteMany({})`, matches every document in the collection.
+`delete_many({})`, matches every document in the collection.
 
 ### Indexes
 
 Indexes make frequent queries faster by avoiding a full collection scan.
 
-```javascript
-// Enforce uniqueness and speed up lookups by email.
-db.users.createIndex({ email: 1 }, { unique: true });
+```python
+# Enforce uniqueness and speed up lookups by email.
+db.users.create_index([("email", 1)], unique=True)
 
-// Inspect indexes defined on the collection.
-db.users.getIndexes();
+# Inspect indexes defined on the collection.
+print(list(db.users.list_indexes()))
 ```
 
 Indexes improve reads but use storage and can make writes slower, so create
@@ -249,12 +271,12 @@ them for real query patterns rather than every field.
 
 ## Quick reference
 
-```javascript
-show dbs                         // List databases
-use school                       // Select a database
-show collections                 // List collections
-db.students.find({ age: 20 })    // Query documents
-db.students.insertOne({ ... })   // Insert one document
-db.students.updateOne(filter, update) // Update one document
-db.students.deleteOne(filter)   // Delete one document
+```python
+print(client.list_database_names())       # List databases
+db = client.school                        # Select a database
+print(db.list_collection_names())         # List collections
+db.students.find({"age": 20})             # Query documents
+db.students.insert_one({"name": "Ada"})  # Insert one document
+db.students.update_one(filter, update)    # Update one document
+db.students.delete_one(filter)            # Delete one document
 ```
