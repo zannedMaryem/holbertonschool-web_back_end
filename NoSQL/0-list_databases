@@ -1,0 +1,2 @@
+// List databases available to the current MongoDB server.
+show dbs
