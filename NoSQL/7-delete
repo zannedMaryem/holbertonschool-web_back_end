@@ -1,2 +1,2 @@
 // Delete Documents in a collection using filter
-db.school.delete({name: "Holberton school"})
+db.school.delete_many({name: "Holberton school"})
