@@ -16,7 +16,7 @@ function countStudents(path) {
       students.forEach((line) => {
         const parts = line.split(',');
         const firstName = parts[0];
-        const field = parts[3]; // assuming CSV format: firstname,lastname,age,field
+        const field = parts[3]; // CSV format: firstname,lastname,age,field
         if (firstName && field) {
           if (!fields[field]) fields[field] = [];
           fields[field].push(firstName);
